@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Diagnóstico Xtream</title>
+<style>
+  :root { --bg:#0f1115; --card:#181b22; --line:#2a2f3a; --text:#e8eaf0; --muted:#9aa3b2; --acc:#4f8cff; --ok:#3ecf8e; --warn:#f5b041; --err:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding:16px; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  main { max-width:720px; margin:0 auto; }
+  h1 { font-size:20px; margin:4px 0 4px; }
+  h2 { font-size:15px; margin:0 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  p.sub { color:var(--muted); margin:0 0 16px; font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  input, select { width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line); background:#0c0e12; color:var(--text); font-size:16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  button { flex:1 1 auto; padding:11px 14px; border-radius:8px; border:1px solid var(--line); background:#232836; color:var(--text); font-size:15px; font-weight:600; cursor:pointer; }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  button:disabled { opacity:.5; }
+  .check { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; color:var(--muted); }
+  .check input { width:auto; }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:8px 4px; border-top:1px solid var(--line); vertical-align:top; }
+  td:first-child { width:28px; font-size:17px; }
+  .d { color:var(--muted); font-size:12.5px; word-break:break-all; margin-top:2px; }
+  .verdict { padding:12px; border-radius:10px; font-weight:600; margin-top:12px; }
+  .verdict.ok { background:rgba(62,207,142,.12); border:1px solid var(--ok); }
+  .verdict.warn { background:rgba(245,176,65,.12); border:1px solid var(--warn); }
+  .verdict.err { background:rgba(255,107,107,.12); border:1px solid var(--err); }
+  .verdict.pend { background:#11141a; border:1px dashed var(--line); color:var(--muted); font-weight:400; }
+  video { width:100%; background:#000; border-radius:8px; margin-top:6px; }
+  ul#log { list-style:none; padding:0; margin:0; font:12px/1.4 ui-monospace,Menlo,monospace; max-height:320px; overflow:auto; }
+  ul#log li { padding:3px 0; border-bottom:1px dashed #222; word-break:break-all; }
+  li.ok { color:var(--ok); } li.warn { color:var(--warn); } li.err { color:var(--err); } li.info { color:var(--muted); }
+  .hint { font-size:12.5px; color:var(--muted); margin-top:8px; }
+  textarea { width:100%; height:180px; margin-top:8px; background:#0c0e12; color:var(--text); border:1px solid var(--line); border-radius:8px; font:12px ui-monospace,Menlo,monospace; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Diagnóstico Xtream</h1>
+  <p class="sub">Comprueba si una PWA en GitHub Pages puede usar tu servidor IPTV sin proxy (HTTPS, CORS, streams y AirPlay). Todo se ejecuta en este dispositivo: tus datos no se envían a ningún otro sitio.</p>
+
+  <section class="card">
+    <h2>1 · Datos</h2>
+    <label for="server">Servidor (con https:// y puerto si lo tiene)</label>
+    <input id="server" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://mi-servidor.com">
+    <label for="user">Usuario</label>
+    <input id="user" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="pass">Contraseña</label>
+    <input id="pass" type="password" autocomplete="off">
+    <div class="check"><input id="remember" type="checkbox"><span>Recordar en este dispositivo</span></div>
+    <div class="row">
+      <button id="btnAll" class="primary">Ejecutar todas las pruebas</button>
+    </div>
+    <div class="hint">Tu cuenta solo permite 1 conexión: deja de reproducir en otros dispositivos antes de probar.</div>
+  </section>
+
+  <section class="card">
+    <h2>2 · Canal de prueba</h2>
+    <div id="pickers" hidden>
+      <label for="catSel">Categoría</label>
+      <select id="catSel"></select>
+      <label for="streamSel">Canal</label>
+      <select id="streamSel"></select>
+    </div>
+    <label for="streamId">…o stream_id manual (si la API no permite CORS)</label>
+    <input id="streamId" inputmode="numeric" placeholder="p. ej. 12345">
+    <div class="row">
+      <button id="btnOpenCats">Ver categorías ↗</button>
+      <button id="btnOpenStreams">Ver canales ↗</button>
+    </div>
+    <div class="hint">Estos botones abren la API en otra pestaña (ahí no aplica CORS) para que copies un <code>stream_id</code> a mano.</div>
+    <div class="row">
+      <button id="btnStream">Probar canal</button>
+      <button id="btnPlayOnly">Solo reproducción</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3 · Reproductor</h2>
+    <video id="video" controls playsinline x-webkit-airplay="allow" preload="none"></video>
+    <div class="row">
+      <button id="btnAirplay" hidden>📺 Enviar por AirPlay</button>
+      <button id="btnStop">Detener</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Resultados</h2>
+    <table><tbody id="summary"></tbody></table>
+    <div id="verdict" class="verdict pend">Ejecuta las pruebas para ver el veredicto.</div>
+    <div class="row">
+      <button id="btnCopy">Copiar informe (sin credenciales)</button>
+    </div>
+    <textarea id="reportBox" readonly hidden></textarea>
+  </section>
+
+  <section class="card">
+    <h2>Registro</h2>
+    <ul id="log"></ul>
+  </section>
+</main>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const ICON = { ok:'✅', warn:'⚠️', err:'❌', pend:'⏳', na:'➖' };
+  const ROWS = [
+    ['env',     'Página servida por HTTPS'],
+    ['api',     'API accesible por HTTPS'],
+    ['cors',    'API con CORS (la web puede leerla)'],
+    ['auth',    'Cuenta válida'],
+    ['m3u8',    'Playlist .m3u8 legible desde la web'],
+    ['redir',   'Redirección del stream'],
+    ['segs',    'Segmentos de vídeo'],
+    ['play',    'Reproducción en <video> desde HTTPS'],
+    ['airplay', 'AirPlay'],
+  ];
+  const R = {};
+  const LOG = [];
+  const video = $('video');
+
+  // ---------- utilidades ----------
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function base() {
+    let b = $('server').value.trim().replace(/\/+$/, '');
+    if (b && !/^https?:\/\//i.test(b)) b = 'https://' + b;
+    return b;
+  }
+  const creds = () => ({ u: $('user').value.trim(), p: $('pass').value.trim() });
+
+  function apiUrl(params = {}) {
+    const { u, p } = creds();
+    const url = new URL(base() + '/player_api.php');
+    url.searchParams.set('username', u);
+    url.searchParams.set('password', p);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+    return url.toString();
+  }
+  function streamUrl(id) {
+    const { u, p } = creds();
+    return `${base()}/live/${encodeURIComponent(u)}/${encodeURIComponent(p)}/${id}.m3u8`;
+  }
+
+  function redact(s) {
+    s = String(s);
+    const { u, p } = creds();
+    let host = '';
+    try { host = new URL(base()).host; } catch (_) {}
+    const pairs = [[p, '***'], [encodeURIComponent(p), '***'], [u, '***'], [encodeURIComponent(u), '***'], [host, 'SERVIDOR']];
+    for (const [x, rep] of pairs) if (x && x.length >= 2) s = s.split(x).join(rep);
+    return s;
+  }
+
+  function log(type, msg) {
+    const clean = redact(msg);
+    const li = document.createElement('li');
+    li.className = type;
+    li.textContent = clean;
+    $('log').appendChild(li);
+    $('log').scrollTop = $('log').scrollHeight;
+    LOG.push(`[${type}] ${clean}`);
+  }
+
+  function setR(key, s, d = '') { R[key] = { s, d }; render(); }
+
+  function render() {
+    const tb = $('summary');
+    tb.innerHTML = '';
+    for (const [k, label] of ROWS) {
+      const r = R[k] || { s: 'pend', d: '' };
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${ICON[r.s]}</td><td><b>${esc(label)}</b>${r.d ? `<div class="d">${esc(redact(r.d))}</div>` : ''}</td>`;
+      tb.appendChild(tr);
+    }
+    const v = verdict();
+    const el = $('verdict');
+    el.className = 'verdict ' + v.cls;
+    el.textContent = v.text;
+  }
+
+  function verdict() {
+    const cors = R.cors && R.cors.s, play = R.play && R.play.s;
+    if (!play || play === 'pend') return { cls: 'pend', text: 'Ejecuta las pruebas para ver el veredicto.' };
+    if (cors === 'ok' && play === 'ok')
+      return { cls: 'ok', text: '✅ Viable en GitHub Pages sin proxy: la API se puede leer desde la web y el vídeo se reproduce desde una página HTTPS.' };
+    if (cors !== 'ok' && play === 'ok')
+      return { cls: 'warn', text: '⚠️ El vídeo funciona desde HTTPS, pero la API no permite CORS: necesitas un proxy solo para la API (p. ej. Cloudflare Worker) o el aparato en casa.' };
+    if (cors === 'ok' && play !== 'ok')
+      return { cls: 'warn', text: '⚠️ La API funciona, pero el vídeo no se reproduce desde HTTPS (probablemente redirección o segmentos en HTTP): toca servir la PWA por HTTP desde un aparato en casa.' };
+    return { cls: 'err', text: '❌ Ni la API ni el vídeo funcionan desde GitHub Pages: toca aparato en casa (PWA servida por HTTP en tu red).' };
+  }
+
+  async function tfetch(url, opts = {}, ms = 12000) {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), ms);
+    try {
+      return await fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', ...opts, signal: c.signal });
+    } finally { clearTimeout(t); }
+  }
+
+  // Distingue "sin CORS" de "inaccesible": si falla en modo cors pero responde en no-cors, el servidor existe pero no permite CORS.
+  async function probe(url) {
+    try {
+      const res = await tfetch(url, { mode: 'cors' });
+      return { cors: true, reachable: true, res };
+    } catch (e) {
+      if (e.name === 'AbortError') return { cors: false, reachable: false, err: 'timeout' };
+      try {
+        await tfetch(url, { mode: 'no-cors' });
+        return { cors: false, reachable: true, err: e.message };
+      } catch (e2) {
+        return { cors: false, reachable: false, err: e2.name === 'AbortError' ? 'timeout' : e2.message };
+      }
+    }
+  }
+
+  // ---------- pruebas ----------
+  function checkEnv() {
+    const secure = location.protocol === 'https:';
+    setR('env', secure ? 'ok' : 'warn',
+      secure ? 'Igual que en GitHub Pages' : `Abierta por ${location.protocol} — súbela a GitHub Pages para que el resultado sea representativo`);
+    if (secure && base().startsWith('http:'))
+      log('warn', 'Has puesto http:// y esta página es HTTPS: el navegador bloqueará las peticiones (contenido mixto). Prueba con https://');
+    if (/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent))
+      log('warn', 'No estás en Safari: para probar AirPlay abre esta página en Safari.');
+  }
+
+  function validInputs() {
+    const { u, p } = creds();
+    if (!base() || !u || !p) { log('err', 'Rellena servidor, usuario y contraseña.'); return false; }
+    try { new URL(base()); } catch (_) { log('err', 'La URL del servidor no es válida.'); return false; }
+    return true;
+  }
+
+  async function runApi() {
+    log('info', '— Prueba de la API —');
+    checkEnv();
+    const url = apiUrl();
+    log('info', 'GET ' + url);
+    const r = await probe(url);
+
+    if (!r.reachable) {
+      setR('api', 'err', r.err === 'timeout' ? 'Sin respuesta en 12 s' : `No se pudo conectar (${r.err}). Revisa URL, puerto y que el certificado HTTPS sea válido.`);
+      setR('cors', 'na'); setR('auth', 'na');
+      return false;
+    }
+    setR('api', 'ok', 'El servidor responde por ' + new URL(url).protocol.replace(':', '').toUpperCase());
+
+    if (!r.cors) {
+      setR('cors', 'err', 'El servidor responde pero no envía Access-Control-Allow-Origin: el navegador no deja leer la respuesta.');
+      setR('auth', 'na', 'No se puede comprobar sin CORS (usa los botones "Ver ↗" para sacar un stream_id)');
+      log('warn', 'Sin CORS en la API. Puedes seguir probando el vídeo con un stream_id manual.');
+      return false;
+    }
+    setR('cors', 'ok', 'La web puede leer las respuestas de la API');
+
+    let j;
+    try { j = await r.res.json(); }
+    catch (_) { setR('auth', 'warn', `HTTP ${r.res.status}, respuesta no JSON`); return true; }
+
+    const ui = j.user_info || {}, si = j.server_info || {};
+    if (String(ui.auth) === '1') {
+      const exp = ui.exp_date ? new Date(Number(ui.exp_date) * 1000).toLocaleDateString('es-ES') : '—';
+      setR('auth', 'ok', `Estado: ${ui.status} · conexiones máx: ${ui.max_connections} · activas: ${ui.active_cons} · formatos: ${(ui.allowed_output_formats || []).join(', ')} · caduca: ${exp}`);
+      if (Number(ui.active_cons) >= Number(ui.max_connections))
+        log('warn', `Ya hay ${ui.active_cons} conexión(es) activa(s) de ${ui.max_connections}: la prueba de vídeo puede fallar. Para otros reproductores.`);
+    } else {
+      setR('auth', 'err', 'auth=0: usuario/contraseña incorrectos o cuenta inactiva');
+      return true;
+    }
+    log('info', `server_info → protocolo: ${si.server_protocol}, puerto: ${si.port}, puerto https: ${si.https_port}`);
+    await loadCategories();
+    return true;
+  }
+
+  async function loadCategories() {
+    try {
+      const res = await tfetch(apiUrl({ action: 'get_live_categories' }));
+      const cats = await res.json();
+      const sel = $('catSel');
+      sel.innerHTML = '';
+      for (const c of cats) {
+        const o = document.createElement('option');
+        o.value = c.category_id; o.textContent = c.category_name;
+        sel.appendChild(o);
+      }
+      $('pickers').hidden = false;
+      log('ok', `${cats.length} categorías en directo cargadas`);
+      if (cats.length) await loadStreams(cats[0].category_id);
+    } catch (e) { log('warn', 'No se pudieron cargar las categorías: ' + e.message); }
+  }
+
+  async function loadStreams(catId) {
+    try {
+      const res = await tfetch(apiUrl({ action: 'get_live_streams', category_id: catId }));
+      const arr = await res.json();
+      const sel = $('streamSel');
+      sel.innerHTML = '';
+      for (const s of arr.slice(0, 1000)) {
+        const o = document.createElement('option');
+        o.value = s.stream_id; o.textContent = `${s.name} (${s.stream_id})`;
+        sel.appendChild(o);
+      }
+      log('ok', `${arr.length} canales en la categoría`);
+    } catch (e) { log('warn', 'No se pudieron cargar los canales: ' + e.message); }
+  }
+
+  function currentStreamId() {
+    const id = ($('streamId').value.trim() || $('streamSel').value || '').trim();
+    if (!/^\d+$/.test(id)) { log('err', 'Elige un canal o escribe un stream_id numérico.'); return null; }
+    return id;
+  }
+
+  function analyze(text, baseUrl) {
+    const lines = text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    if (!lines.length || !lines[0].startsWith('#EXTM3U')) return { valid: false };
+    const uris = [];
+    let isMaster = false;
+    for (const l of lines) {
+      if (l.startsWith('#EXT-X-STREAM-INF')) isMaster = true;
+      if (l.startsWith('#')) { const m = l.match(/URI="([^"]+)"/); if (m) uris.push(m[1]); }
+      else uris.push(l);
+    }
+    const abs = uris.map((u) => { try { return new URL(u, baseUrl).href; } catch (_) { return u; } });
+    return { valid: true, isMaster, abs, http: abs.filter((u) => u.startsWith('http:')).length };
+  }
+
+  async function inspect(url) {
+    setR('m3u8', 'pend', 'Probando…');
+    const r = await probe(url);
+    if (!r.reachable) {
+      setR('m3u8', 'err', `No accesible desde la web (${r.err}). Puede ser una redirección a HTTP bloqueada.`);
+      setR('redir', 'na'); setR('segs', 'na');
+      return;
+    }
+    if (!r.cors) {
+      setR('m3u8', 'warn', 'Accesible, pero sin CORS: la web no puede leerla (para reproducir en <video> no hace falta CORS).');
+      setR('redir', 'na', 'No visible sin CORS'); setR('segs', 'na', 'No visible sin CORS');
+      return;
+    }
+    const res = r.res;
+    if (!res.ok) {
+      setR('m3u8', 'err', `HTTP ${res.status}` + (res.status === 403 || res.status === 509 ? ' (¿límite de conexiones?)' : ''));
+      setR('redir', 'na'); setR('segs', 'na');
+      return;
+    }
+    setR('m3u8', 'ok', `HTTP ${res.status}`);
+    const fin = res.url;
+    setR('redir', fin.startsWith('https:') ? 'ok' : 'err', res.redirected ? `Redirige a ${fin}` : 'Sin redirección');
+
+    let a = analyze(await res.text(), fin);
+    if (!a.valid) { setR('segs', 'warn', 'La respuesta no parece un .m3u8'); return; }
+    if (a.isMaster && a.abs.length) {
+      log('info', 'Playlist maestra, variante: ' + a.abs[0]);
+      try {
+        const r2 = await tfetch(a.abs[0]);
+        a = analyze(await r2.text(), r2.url);
+        if (!a.valid) { setR('segs', 'warn', 'La variante no parece un .m3u8'); return; }
+      } catch (e) { setR('segs', 'warn', 'No se pudo leer la variante: ' + e.message); return; }
+    }
+    const n = a.abs.length;
+    if (!n) { setR('segs', 'warn', 'Playlist sin segmentos'); return; }
+    log('info', 'Ejemplo de segmento: ' + a.abs[0]);
+    if (a.http === 0) setR('segs', 'ok', `${n} segmentos, todos por HTTPS`);
+    else setR('segs', 'err', `${a.http} de ${n} segmentos por HTTP: desde una página HTTPS se bloquearán`);
+  }
+
+  function mediaErr(e) {
+    if (!e) return 'desconocido';
+    return ({ 1: 'abortado', 2: 'error de red', 3: 'error de decodificación', 4: 'fuente no soportada o bloqueada (contenido mixto, 403, límite de conexiones…)' })[e.code] || 'desconocido';
+  }
+
+  function stopVideo() {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+  }
+
+  function testPlay(url) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (ok, msg) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        video.onplaying = video.onerror = video.ontimeupdate = null;
+        resolve({ ok, msg });
+      };
+      const timer = setTimeout(() => finish(false, 'Tiempo agotado (25 s) sin empezar a reproducir'), 25000);
+      video.onloadedmetadata = () => log('info', `Metadatos: ${video.videoWidth}x${video.videoHeight}`);
+      video.onplaying = () => finish(true, `Reproduciendo ${video.videoWidth}x${video.videoHeight}`);
+      video.ontimeupdate = () => { if (video.currentTime > 0.5) finish(true, `Reproduciendo ${video.videoWidth}x${video.videoHeight}`); };
+      video.onerror = () => finish(false, `Error ${video.error ? video.error.code : ''}: ${mediaErr(video.error)}`);
+      video.muted = true; // permite autoplay en iOS
+      video.src = url;
+      const p = video.play();
+      if (p && p.catch) p.catch((e) => log('warn', 'play(): ' + e.message));
+    });
+  }
+
+  async function runPlay(url) {
+    log('info', '— Prueba de reproducción —');
+    setR('play', 'pend', 'Probando…');
+    const res = await testPlay(url);
+    setR('play', res.ok ? 'ok' : 'err', res.msg);
+    log(res.ok ? 'ok' : 'err', 'Reproducción: ' + res.msg);
+    if (res.ok) log('info', 'Activa el sonido en el reproductor y prueba AirPlay.');
+    else log('info', 'Si sospechas del límite de 1 conexión, espera ~30 s y pulsa "Solo reproducción".');
+  }
+
+  async function runStream({ inspectFirst = true } = {}) {
+    if (!validInputs()) return;
+    const id = currentStreamId();
+    if (!id) return;
+    const url = streamUrl(id);
+    checkEnv();
+    stopVideo();
+    log('info', `— Canal ${id} — ` + url);
+    if (inspectFirst) {
+      await inspect(url);
+      await sleep(3000); // margen para que el panel libere la conexión
+    }
+    await runPlay(url);
+  }
+
+  // ---------- AirPlay ----------
+  if (window.WebKitPlaybackTargetAvailabilityEvent) {
+    setR('airplay', 'pend', 'Esperando a detectar receptores…');
+    video.addEventListener('webkitplaybacktargetavailabilitychanged', (e) => {
+      const av = e.availability === 'available';
+      $('btnAirplay').hidden = !av;
+      if (!(R.airplay && R.airplay.d.startsWith('Enviado')))
+        setR('airplay', av ? 'ok' : 'warn', av ? 'Hay receptores AirPlay en tu red: pulsa "Enviar por AirPlay"' : 'No se detectan receptores (¿tele encendida, AirPlay activado y misma wifi?)');
+    });
+    video.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => {
+      const w = video.webkitCurrentPlaybackTargetIsWireless;
+      log(w ? 'ok' : 'info', w ? 'Reproduciendo por AirPlay ✓' : 'AirPlay desconectado');
+      if (w) setR('airplay', 'ok', 'Enviado correctamente a la tele por AirPlay');
+    });
+    $('btnAirplay').onclick = () => video.webkitShowPlaybackTargetPicker();
+  } else {
+    setR('airplay', 'na', 'Este navegador no expone AirPlay a la web (usa Safari en el iPhone)');
+  }
+
+  // ---------- persistencia opcional ----------
+  const KEY = 'xtream-diag';
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) { $('server').value = saved.s || ''; $('user').value = saved.u || ''; $('pass').value = saved.p || ''; $('remember').checked = true; }
+  } catch (_) {}
+  function persist() {
+    try {
+      if ($('remember').checked) localStorage.setItem(KEY, JSON.stringify({ s: $('server').value.trim(), u: $('user').value.trim(), p: $('pass').value.trim() }));
+      else localStorage.removeItem(KEY);
+    } catch (_) {}
+  }
+  $('remember').onchange = persist;
+
+  // ---------- botones ----------
+  async function busy(btn, fn) {
+    const all = document.querySelectorAll('button');
+    all.forEach((b) => (b.disabled = true));
+    try { await fn(); } catch (e) { log('err', 'Error inesperado: ' + e.message); }
+    finally { all.forEach((b) => (b.disabled = false)); }
+  }
+
+  $('btnAll').onclick = (e) => busy(e.target, async () => {
+    if (!validInputs()) return;
+    persist();
+    await runApi();
+    if ($('streamId').value.trim() || $('streamSel').value) await runStream();
+    else log('warn', 'Sin canal para probar el vídeo: escribe un stream_id en la sección 2 y pulsa "Probar canal".');
+  });
+  $('btnStream').onclick = (e) => busy(e.target, async () => { persist(); await runStream(); });
+  $('btnPlayOnly').onclick = (e) => busy(e.target, async () => { persist(); await runStream({ inspectFirst: false }); });
+  $('btnStop').onclick = () => { stopVideo(); log('info', 'Reproducción detenida (conexión liberada).'); };
+  $('catSel').onchange = () => loadStreams($('catSel').value);
+  $('streamSel').onchange = () => { $('streamId').value = ''; };
+
+  $('btnOpenCats').onclick = () => { if (validInputs()) window.open(apiUrl({ action: 'get_live_categories' }), '_blank', 'noopener'); };
+  $('btnOpenStreams').onclick = () => { if (validInputs()) window.open(apiUrl({ action: 'get_live_streams' }), '_blank', 'noopener'); };
+
+  $('btnCopy').onclick = async () => {
+    const lines = [
+      'Diagnóstico Xtream — ' + new Date().toISOString(),
+      'Navegador: ' + navigator.userAgent,
+      'Página: ' + location.protocol,
+      '',
+      ...ROWS.map(([k, label]) => { const r = R[k] || { s: 'pend', d: '' }; return `${ICON[r.s]} ${label}${r.d ? ': ' + r.d : ''}`; }),
+      '',
+      'Veredicto: ' + verdict().text,
+      '',
+      'Registro:',
+      ...LOG,
+    ];
+    const txt = redact(lines.join('\n'));
+    try {
+      await navigator.clipboard.writeText(txt);
+      $('btnCopy').textContent = 'Copiado ✓';
+      setTimeout(() => ($('btnCopy').textContent = 'Copiar informe (sin credenciales)'), 2000);
+    } catch (_) {
+      const box = $('reportBox');
+      box.hidden = false; box.value = txt; box.focus(); box.select();
+    }
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

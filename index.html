@@ -5,515 +5,550 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
-<title>Diagnóstico Xtream</title>
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi TV">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Mi propia TV</title>
 <style>
-  :root { --bg:#0f1115; --card:#181b22; --line:#2a2f3a; --text:#e8eaf0; --muted:#9aa3b2; --acc:#4f8cff; --ok:#3ecf8e; --warn:#f5b041; --err:#ff6b6b; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding:16px; padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
-  main { max-width:720px; margin:0 auto; }
-  h1 { font-size:20px; margin:4px 0 4px; }
-  h2 { font-size:15px; margin:0 0 10px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-  p.sub { color:var(--muted); margin:0 0 16px; font-size:13px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
-  label { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
-  input, select { width:100%; padding:11px 12px; border-radius:8px; border:1px solid var(--line); background:#0c0e12; color:var(--text); font-size:16px; }
-  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
-  button { flex:1 1 auto; padding:11px 14px; border-radius:8px; border:1px solid var(--line); background:#232836; color:var(--text); font-size:15px; font-weight:600; cursor:pointer; }
-  button.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
-  button:disabled { opacity:.5; }
-  .check { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:13px; color:var(--muted); }
-  .check input { width:auto; }
-  table { width:100%; border-collapse:collapse; }
-  td { padding:8px 4px; border-top:1px solid var(--line); vertical-align:top; }
-  td:first-child { width:28px; font-size:17px; }
-  .d { color:var(--muted); font-size:12.5px; word-break:break-all; margin-top:2px; }
-  .verdict { padding:12px; border-radius:10px; font-weight:600; margin-top:12px; }
-  .verdict.ok { background:rgba(62,207,142,.12); border:1px solid var(--ok); }
-  .verdict.warn { background:rgba(245,176,65,.12); border:1px solid var(--warn); }
-  .verdict.err { background:rgba(255,107,107,.12); border:1px solid var(--err); }
-  .verdict.pend { background:#11141a; border:1px dashed var(--line); color:var(--muted); font-weight:400; }
-  video { width:100%; background:#000; border-radius:8px; margin-top:6px; }
-  ul#log { list-style:none; padding:0; margin:0; font:12px/1.4 ui-monospace,Menlo,monospace; max-height:320px; overflow:auto; }
-  ul#log li { padding:3px 0; border-bottom:1px dashed #222; word-break:break-all; }
-  li.ok { color:var(--ok); } li.warn { color:var(--warn); } li.err { color:var(--err); } li.info { color:var(--muted); }
-  .hint { font-size:12.5px; color:var(--muted); margin-top:8px; }
-  textarea { width:100%; height:180px; margin-top:8px; background:#0c0e12; color:var(--text); border:1px solid var(--line); border-radius:8px; font:12px ui-monospace,Menlo,monospace; }
+  :root {
+    --bg:#0f1115; --card:#181b22; --card2:#1f2330; --line:#2a2f3a; --text:#e8eaf0; --muted:#9aa3b2;
+    --acc:#4f8cff; --star:#f5c542; --err:#ff6b6b;
+    --top: env(safe-area-inset-top); --bot: env(safe-area-inset-bottom);
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; background:var(--bg); color:var(--text); font:16px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
   [hidden] { display:none !important; }
+  button { font:inherit; color:inherit; }
+  input, select { font-size:16px; }
+
+  /* Login */
+  #login { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; padding-top:calc(24px + var(--top)); }
+  #login form { width:100%; max-width:400px; }
+  #login img { width:72px; height:72px; border-radius:18px; display:block; margin:0 auto 12px; }
+  #login h1 { text-align:center; margin:0 0 4px; font-size:24px; }
+  #login p { text-align:center; color:var(--muted); margin:0 0 20px; font-size:14px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  .field { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:#0c0e12; color:var(--text); }
+  .btn { display:block; width:100%; padding:13px; border-radius:10px; border:1px solid var(--line); background:var(--card2); font-weight:600; cursor:pointer; text-align:center; text-decoration:none; color:var(--text); }
+  .btn.primary { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .btn.danger { color:var(--err); }
+  .btn + .btn { margin-top:10px; }
+  .err { color:var(--err); font-size:14px; min-height:20px; margin-top:10px; text-align:center; }
+  .note { color:var(--muted); font-size:12.5px; margin-top:14px; text-align:center; }
+
+  /* App */
+  header { position:sticky; top:0; z-index:5; background:rgba(15,17,21,.92); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    padding:calc(10px + var(--top)) 12px 10px; display:flex; align-items:center; gap:8px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:18px; margin:0; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #back { background:none; border:0; color:var(--acc); font-size:16px; padding:4px 6px; cursor:pointer; }
+  main { padding:8px 12px calc(84px + var(--bot)); }
+  nav.tabs { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; background:rgba(24,27,34,.96); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--line); padding-bottom:var(--bot); }
+  nav.tabs button { flex:1; background:none; border:0; padding:8px 0 10px; color:var(--muted); font-size:11px; cursor:pointer; }
+  nav.tabs button .i { display:block; font-size:21px; line-height:1.2; }
+  nav.tabs button.on { color:var(--acc); }
+
+  .search { position:sticky; top:calc(52px + var(--top)); z-index:4; background:var(--bg); padding:6px 0 8px; }
+  h3 { font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:16px 4px 6px; font-weight:600; }
+  ul.list { list-style:none; margin:0; padding:0; background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  ul.list li { display:flex; align-items:center; gap:10px; padding:9px 8px 9px 10px; border-top:1px solid var(--line); min-height:56px; }
+  ul.list li:first-child { border-top:0; }
+  .tap { flex:1; display:flex; align-items:center; gap:10px; min-width:0; background:none; border:0; text-align:left; padding:0; cursor:pointer; }
+  .logo { width:40px; height:40px; flex:none; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:var(--muted); overflow:hidden; }
+  .logo img { width:100%; height:100%; object-fit:contain; }
+  .name { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sub { display:block; color:var(--muted); font-size:12.5px; }
+  .ico { background:none; border:0; font-size:20px; width:40px; height:40px; border-radius:8px; color:var(--muted); cursor:pointer; flex:none; }
+  .ico.star.on { color:var(--star); }
+  .chev { color:var(--muted); padding-right:6px; }
+  .empty { color:var(--muted); text-align:center; padding:28px 16px; font-size:14px; }
+  .tip { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; color:var(--muted); font-size:13.5px; margin-top:10px; }
+  .tip b { color:var(--text); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:10px; }
+  .kv { display:flex; justify-content:space-between; gap:12px; padding:6px 0; font-size:14px; border-top:1px solid var(--line); }
+  .kv:first-child { border-top:0; }
+  .kv span:first-child { color:var(--muted); }
+  .spinner { text-align:center; color:var(--muted); padding:24px; font-size:14px; }
+
+  /* Hoja inferior */
+  #sheet { position:fixed; inset:0; z-index:20; }
+  #sheet .bg { position:absolute; inset:0; background:rgba(0,0,0,.55); }
+  #sheet .panel { position:absolute; left:0; right:0; bottom:0; background:var(--card); border-radius:16px 16px 0 0; border-top:1px solid var(--line);
+    padding:16px 16px calc(16px + var(--bot)); max-height:85vh; overflow:auto; }
+  #sheet h2 { margin:0 0 4px; font-size:18px; }
+  .epg { margin:12px 0 14px; }
+  .epg div { padding:7px 0; border-top:1px solid var(--line); font-size:14px; }
+  .epg div:first-child { border-top:0; }
+  .epg .t { color:var(--muted); font-variant-numeric:tabular-nums; margin-right:8px; }
+  .epg .now { color:var(--acc); font-weight:600; }
+
+  #toast { position:fixed; left:50%; bottom:calc(96px + var(--bot)); transform:translateX(-50%); background:#2b3140; color:var(--text);
+    padding:10px 16px; border-radius:20px; font-size:14px; z-index:30; opacity:0; transition:opacity .2s; pointer-events:none; max-width:90vw; text-align:center; }
+  #toast.on { opacity:1; }
 </style>
 </head>
 <body>
-<main>
-  <h1>Diagnóstico Xtream</h1>
-  <p class="sub">Comprueba si una PWA en GitHub Pages puede usar tu servidor IPTV sin proxy (HTTPS, CORS, streams y AirPlay). Todo se ejecuta en este dispositivo: tus datos no se envían a ningún otro sitio.</p>
 
-  <section class="card">
-    <h2>1 · Datos</h2>
-    <label for="server">Servidor (con https:// y puerto si lo tiene)</label>
-    <input id="server" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://mi-servidor.com">
-    <label for="user">Usuario</label>
-    <input id="user" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <label for="pass">Contraseña</label>
-    <input id="pass" type="password" autocomplete="off">
-    <div class="check"><input id="remember" type="checkbox"><span>Recordar en este dispositivo</span></div>
-    <div class="row">
-      <button id="btnAll" class="primary">Ejecutar todas las pruebas</button>
-    </div>
-    <div class="hint">Tu cuenta solo permite 1 conexión: deja de reproducir en otros dispositivos antes de probar.</div>
-  </section>
+<!-- Inicio de sesión -->
+<section id="login" hidden>
+  <form id="loginForm" autocomplete="off">
+    <img src="icon-192.png" alt="">
+    <h1>Mi propia TV</h1>
+    <p>Tus datos se guardan solo en este dispositivo.</p>
+    <label for="lServer">Servidor</label>
+    <input id="lServer" class="field" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://mi-servidor.com" required>
+    <label for="lUser">Usuario</label>
+    <input id="lUser" class="field" autocapitalize="off" spellcheck="false" required>
+    <label for="lPass">Contraseña</label>
+    <input id="lPass" class="field" type="password" required>
+    <div class="err" id="lErr"></div>
+    <button class="btn primary" id="lBtn" type="submit">Entrar</button>
+    <div class="note">Usa la dirección <b>https://</b> de la API. Los canales se abrirán en el reproductor de Safari, desde donde puedes enviarlos a la tele por AirPlay.</div>
+  </form>
+</section>
 
-  <section class="card">
-    <h2>2 · Canal de prueba</h2>
-    <div id="pickers" hidden>
-      <label for="catSel">Categoría</label>
-      <select id="catSel"></select>
-      <label for="streamSel">Canal</label>
-      <select id="streamSel"></select>
-    </div>
-    <label for="streamId">…o stream_id manual (si la API no permite CORS)</label>
-    <input id="streamId" inputmode="numeric" placeholder="p. ej. 12345">
-    <div class="row">
-      <button id="btnOpenCats">Ver categorías ↗</button>
-      <button id="btnOpenStreams">Ver canales ↗</button>
-    </div>
-    <div class="hint">Estos botones abren la API en otra pestaña (ahí no aplica CORS) para que copies un <code>stream_id</code> a mano.</div>
-    <div class="row">
-      <button id="btnStream">Probar canal</button>
-      <button id="btnPlayOnly">Solo reproducción</button>
-    </div>
-  </section>
+<!-- App -->
+<section id="app" hidden>
+  <header>
+    <button id="back" hidden>‹ Atrás</button>
+    <h1 id="title">Mi TV</h1>
+  </header>
+  <main id="content"></main>
+  <nav class="tabs">
+    <button data-tab="favs"><span class="i">★</span>Favoritos</button>
+    <button data-tab="cats"><span class="i">☰</span>Categorías</button>
+    <button data-tab="search"><span class="i">⌕</span>Buscar</button>
+    <button data-tab="settings"><span class="i">⚙︎</span>Ajustes</button>
+  </nav>
+</section>
 
-  <section class="card">
-    <h2>3 · Reproductor</h2>
-    <video id="video" controls playsinline x-webkit-airplay="allow" preload="none"></video>
-    <div class="row">
-      <button id="btnAirplay" hidden>📺 Enviar por AirPlay</button>
-      <button id="btnStop">Detener</button>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Resultados</h2>
-    <table><tbody id="summary"></tbody></table>
-    <div id="verdict" class="verdict pend">Ejecuta las pruebas para ver el veredicto.</div>
-    <div class="row">
-      <button id="btnCopy">Copiar informe (sin credenciales)</button>
-    </div>
-    <textarea id="reportBox" readonly hidden></textarea>
-  </section>
-
-  <section class="card">
-    <h2>Registro</h2>
-    <ul id="log"></ul>
-  </section>
-</main>
+<div id="sheet" hidden><div class="bg"></div><div class="panel" id="sheetPanel"></div></div>
+<div id="toast"></div>
 
 <script>
 (() => {
+  'use strict';
   const $ = (id) => document.getElementById(id);
-  const ICON = { ok:'✅', warn:'⚠️', err:'❌', pend:'⏳', na:'➖' };
-  const ROWS = [
-    ['env',     'Página servida por HTTPS'],
-    ['api',     'API accesible por HTTPS'],
-    ['cors',    'API con CORS (la web puede leerla)'],
-    ['auth',    'Cuenta válida'],
-    ['m3u8',    'Playlist .m3u8 legible desde la web'],
-    ['redir',   'Redirección del stream'],
-    ['segs',    'Segmentos de vídeo'],
-    ['play',    'Reproducción en <video> desde HTTPS'],
-    ['airplay', 'AirPlay'],
-  ];
-  const R = {};
-  const LOG = [];
-  const video = $('video');
+
+  // ---------- almacenamiento local ----------
+  const store = {
+    get(k, def) { try { const v = localStorage.getItem('mitv.' + k); return v ? JSON.parse(v) : def; } catch (_) { return def; } },
+    set(k, v) { try { localStorage.setItem('mitv.' + k, JSON.stringify(v)); } catch (_) {} },
+    del(k) { try { localStorage.removeItem('mitv.' + k); } catch (_) {} },
+  };
+
+  const DEFAULTS = { mode: 'tab', fmt: 'm3u8', proto: 'http', streamBase: '' };
+  const S = {
+    cfg: Object.assign({}, DEFAULTS, store.get('cfg', {})),
+    info: store.get('info', null),
+    favs: store.get('favs', []),
+    recent: store.get('recent', []),
+    cats: null,
+    byCat: {},
+    all: null,
+    ch: new Map(),
+    tab: 'favs',
+    cat: null,
+    catFilter: '',
+    query: '',
+  };
+  for (const c of S.favs.concat(S.recent)) S.ch.set(String(c.stream_id), c);
 
   // ---------- utilidades ----------
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const initials = (s) => String(s || '?').replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+  const b64 = (s) => { try { return new TextDecoder().decode(Uint8Array.from(atob(s), (c) => c.charCodeAt(0))); } catch (_) { return s || ''; } };
+  const hhmm = (ts) => new Date(Number(ts) * 1000).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-  function base() {
-    let b = $('server').value.trim().replace(/\/+$/, '');
-    if (b && !/^https?:\/\//i.test(b)) b = 'https://' + b;
-    return b;
-  }
-  const creds = () => ({ u: $('user').value.trim(), p: $('pass').value.trim() });
-
-  function apiUrl(params = {}) {
-    const { u, p } = creds();
-    const url = new URL(base() + '/player_api.php');
-    url.searchParams.set('username', u);
-    url.searchParams.set('password', p);
-    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-    return url.toString();
-  }
-  function streamUrl(id) {
-    const { u, p } = creds();
-    return `${base()}/live/${encodeURIComponent(u)}/${encodeURIComponent(p)}/${id}.m3u8`;
+  let toastT;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600);
   }
 
-  function redact(s) {
-    s = String(s);
-    const { u, p } = creds();
-    let host = '';
-    try { host = new URL(base()).host; } catch (_) {}
-    const pairs = [[p, '***'], [encodeURIComponent(p), '***'], [u, '***'], [encodeURIComponent(u), '***'], [host, 'SERVIDOR']];
-    for (const [x, rep] of pairs) if (x && x.length >= 2) s = s.split(x).join(rep);
+  function normBase(s) {
+    s = String(s || '').trim().replace(/\/+$/, '');
+    if (s && !/^https?:\/\//i.test(s)) s = 'https://' + s;
     return s;
   }
 
-  function log(type, msg) {
-    const clean = redact(msg);
-    const li = document.createElement('li');
-    li.className = type;
-    li.textContent = clean;
-    $('log').appendChild(li);
-    $('log').scrollTop = $('log').scrollHeight;
-    LOG.push(`[${type}] ${clean}`);
-  }
-
-  function setR(key, s, d = '') { R[key] = { s, d }; render(); }
-
-  function render() {
-    const tb = $('summary');
-    tb.innerHTML = '';
-    for (const [k, label] of ROWS) {
-      const r = R[k] || { s: 'pend', d: '' };
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${ICON[r.s]}</td><td><b>${esc(label)}</b>${r.d ? `<div class="d">${esc(redact(r.d))}</div>` : ''}</td>`;
-      tb.appendChild(tr);
-    }
-    const v = verdict();
-    const el = $('verdict');
-    el.className = 'verdict ' + v.cls;
-    el.textContent = v.text;
-  }
-
-  function verdict() {
-    const cors = R.cors && R.cors.s, play = R.play && R.play.s;
-    if (!play || play === 'pend') return { cls: 'pend', text: 'Ejecuta las pruebas para ver el veredicto.' };
-    if (cors === 'ok' && play === 'ok')
-      return { cls: 'ok', text: '✅ Viable en GitHub Pages sin proxy: la API se puede leer desde la web y el vídeo se reproduce desde una página HTTPS.' };
-    if (cors !== 'ok' && play === 'ok')
-      return { cls: 'warn', text: '⚠️ El vídeo funciona desde HTTPS, pero la API no permite CORS: necesitas un proxy solo para la API (p. ej. Cloudflare Worker) o el aparato en casa.' };
-    if (cors === 'ok' && play !== 'ok')
-      return { cls: 'warn', text: '⚠️ La API funciona, pero el vídeo no se reproduce desde HTTPS (probablemente redirección o segmentos en HTTP): toca servir la PWA por HTTP desde un aparato en casa.' };
-    return { cls: 'err', text: '❌ Ni la API ni el vídeo funcionan desde GitHub Pages: toca aparato en casa (PWA servida por HTTP en tu red).' };
-  }
-
-  async function tfetch(url, opts = {}, ms = 12000) {
+  // ---------- API Xtream ----------
+  async function api(params = {}, cfg = S.cfg, ms = 20000) {
+    const url = new URL(cfg.server + '/player_api.php');
+    url.searchParams.set('username', cfg.user);
+    url.searchParams.set('password', cfg.pass);
+    for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
     const c = new AbortController();
     const t = setTimeout(() => c.abort(), ms);
     try {
-      return await fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', ...opts, signal: c.signal });
+      const res = await fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: c.signal });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('El servidor no responde');
+      throw e;
     } finally { clearTimeout(t); }
   }
 
-  // Distingue "sin CORS" de "inaccesible": si falla en modo cors pero responde en no-cors, el servidor existe pero no permite CORS.
-  async function probe(url) {
-    try {
-      const res = await tfetch(url, { mode: 'cors' });
-      return { cors: true, reachable: true, res };
-    } catch (e) {
-      if (e.name === 'AbortError') return { cors: false, reachable: false, err: 'timeout' };
-      try {
-        await tfetch(url, { mode: 'no-cors' });
-        return { cors: false, reachable: true, err: e.message };
-      } catch (e2) {
-        return { cors: false, reachable: false, err: e2.name === 'AbortError' ? 'timeout' : e2.message };
-      }
+  const slim = (s) => ({ stream_id: s.stream_id, name: s.name, stream_icon: s.stream_icon || '', category_id: s.category_id, num: s.num });
+  function remember(list) { for (const s of list) S.ch.set(String(s.stream_id), s); return list; }
+
+  async function getCats() {
+    if (!S.cats) S.cats = await api({ action: 'get_live_categories' });
+    return S.cats;
+  }
+  async function getStreams(catId) {
+    if (!S.byCat[catId]) S.byCat[catId] = remember((await api({ action: 'get_live_streams', category_id: catId })).map(slim));
+    return S.byCat[catId];
+  }
+  async function getAll() {
+    if (!S.all) S.all = remember((await api({ action: 'get_live_streams' }, S.cfg, 60000)).map(slim));
+    return S.all;
+  }
+
+  // ---------- URL del stream y reproducción ----------
+  function streamBase() {
+    if (S.cfg.streamBase) {
+      const b = S.cfg.streamBase.trim().replace(/\/+$/, '');
+      return /^https?:\/\//i.test(b) ? b : 'http://' + b;
     }
+    const si = (S.info && S.info.server_info) || {};
+    const api = new URL(S.cfg.server);
+    if (S.cfg.proto === 'https') return api.origin;
+    const host = (si.url || api.hostname).replace(/^https?:\/\//, '').replace(/[:/].*$/, '');
+    const port = String(si.port || '80');
+    return `http://${host}${port && port !== '80' && port !== '0' ? ':' + port : ''}`;
+  }
+  function streamUrl(id) {
+    return `${streamBase()}/live/${encodeURIComponent(S.cfg.user)}/${encodeURIComponent(S.cfg.pass)}/${id}.${S.cfg.fmt}`;
+  }
+  const vlcUrl = (url) => 'vlc-x-callback://x-callback-url/stream?url=' + encodeURIComponent(url);
+
+  function addRecent(ch) {
+    S.recent = [slim(ch)].concat(S.recent.filter((c) => String(c.stream_id) !== String(ch.stream_id))).slice(0, 12);
+    store.set('recent', S.recent);
   }
 
-  // ---------- pruebas ----------
-  function checkEnv() {
-    const secure = location.protocol === 'https:';
-    setR('env', secure ? 'ok' : 'warn',
-      secure ? 'Igual que en GitHub Pages' : `Abierta por ${location.protocol} — súbela a GitHub Pages para que el resultado sea representativo`);
-    if (secure && base().startsWith('http:'))
-      log('warn', 'Has puesto http:// y esta página es HTTPS: el navegador bloqueará las peticiones (contenido mixto). Prueba con https://');
-    if (/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent))
-      log('warn', 'No estás en Safari: para probar AirPlay abre esta página en Safari.');
+  // Debe ejecutarse de forma síncrona dentro del toque, o Safari bloquea la ventana.
+  function play(ch, mode = S.cfg.mode) {
+    const url = streamUrl(ch.stream_id);
+    addRecent(ch);
+    if (mode === 'vlc') { location.href = vlcUrl(url); return; }
+    if (mode === 'same') { location.href = url; return; }
+    const w = window.open(url, '_blank');
+    if (w) { try { w.opener = null; } catch (_) {} }
+    else location.href = url;
   }
 
-  function validInputs() {
-    const { u, p } = creds();
-    if (!base() || !u || !p) { log('err', 'Rellena servidor, usuario y contraseña.'); return false; }
-    try { new URL(base()); } catch (_) { log('err', 'La URL del servidor no es válida.'); return false; }
-    return true;
+  function isFav(id) { return S.favs.some((c) => String(c.stream_id) === String(id)); }
+  function toggleFav(ch) {
+    if (isFav(ch.stream_id)) { S.favs = S.favs.filter((c) => String(c.stream_id) !== String(ch.stream_id)); toast('Quitado de favoritos'); }
+    else { S.favs.push(slim(ch)); toast('Añadido a favoritos'); }
+    store.set('favs', S.favs);
   }
 
-  async function runApi() {
-    log('info', '— Prueba de la API —');
-    checkEnv();
-    const url = apiUrl();
-    log('info', 'GET ' + url);
-    const r = await probe(url);
-
-    if (!r.reachable) {
-      setR('api', 'err', r.err === 'timeout' ? 'Sin respuesta en 12 s' : `No se pudo conectar (${r.err}). Revisa URL, puerto y que el certificado HTTPS sea válido.`);
-      setR('cors', 'na'); setR('auth', 'na');
-      return false;
-    }
-    setR('api', 'ok', 'El servidor responde por ' + new URL(url).protocol.replace(':', '').toUpperCase());
-
-    if (!r.cors) {
-      setR('cors', 'err', 'El servidor responde pero no envía Access-Control-Allow-Origin: el navegador no deja leer la respuesta.');
-      setR('auth', 'na', 'No se puede comprobar sin CORS (usa los botones "Ver ↗" para sacar un stream_id)');
-      log('warn', 'Sin CORS en la API. Puedes seguir probando el vídeo con un stream_id manual.');
-      return false;
-    }
-    setR('cors', 'ok', 'La web puede leer las respuestas de la API');
-
-    let j;
-    try { j = await r.res.json(); }
-    catch (_) { setR('auth', 'warn', `HTTP ${r.res.status}, respuesta no JSON`); return true; }
-
-    const ui = j.user_info || {}, si = j.server_info || {};
-    if (String(ui.auth) === '1') {
-      const exp = ui.exp_date ? new Date(Number(ui.exp_date) * 1000).toLocaleDateString('es-ES') : '—';
-      setR('auth', 'ok', `Estado: ${ui.status} · conexiones máx: ${ui.max_connections} · activas: ${ui.active_cons} · formatos: ${(ui.allowed_output_formats || []).join(', ')} · caduca: ${exp}`);
-      if (Number(ui.active_cons) >= Number(ui.max_connections))
-        log('warn', `Ya hay ${ui.active_cons} conexión(es) activa(s) de ${ui.max_connections}: la prueba de vídeo puede fallar. Para otros reproductores.`);
-    } else {
-      setR('auth', 'err', 'auth=0: usuario/contraseña incorrectos o cuenta inactiva');
-      return true;
-    }
-    log('info', `server_info → protocolo: ${si.server_protocol}, puerto: ${si.port}, puerto https: ${si.https_port}`);
-    await loadCategories();
-    return true;
+  // ---------- render ----------
+  function logoHtml(ch) {
+    const ini = esc(initials(ch.name));
+    const src = ch.stream_icon && /^https?:\/\//.test(ch.stream_icon) ? ch.stream_icon.replace(/^http:\/\//, 'https://') : '';
+    return `<span class="logo">${src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer" data-ini="${ini}">` : ini}</span>`;
   }
 
-  async function loadCategories() {
-    try {
-      const res = await tfetch(apiUrl({ action: 'get_live_categories' }));
-      const cats = await res.json();
-      const sel = $('catSel');
-      sel.innerHTML = '';
-      for (const c of cats) {
-        const o = document.createElement('option');
-        o.value = c.category_id; o.textContent = c.category_name;
-        sel.appendChild(o);
-      }
-      $('pickers').hidden = false;
-      log('ok', `${cats.length} categorías en directo cargadas`);
-      if (cats.length) await loadStreams(cats[0].category_id);
-    } catch (e) { log('warn', 'No se pudieron cargar las categorías: ' + e.message); }
+  function channelList(list, { showNum = true } = {}) {
+    if (!list.length) return '';
+    return '<ul class="list">' + list.map((ch) => `
+      <li>
+        <button class="tap" data-act="play" data-id="${esc(ch.stream_id)}">
+          ${logoHtml(ch)}
+          <span class="name">${esc(ch.name)}${showNum && ch.num ? `<span class="sub">${esc(ch.num)}</span>` : ''}</span>
+        </button>
+        <button class="ico star ${isFav(ch.stream_id) ? 'on' : ''}" data-act="fav" data-id="${esc(ch.stream_id)}" aria-label="Favorito">${isFav(ch.stream_id) ? '★' : '☆'}</button>
+        <button class="ico" data-act="more" data-id="${esc(ch.stream_id)}" aria-label="Más">⋯</button>
+      </li>`).join('') + '</ul>';
   }
 
-  async function loadStreams(catId) {
-    try {
-      const res = await tfetch(apiUrl({ action: 'get_live_streams', category_id: catId }));
-      const arr = await res.json();
-      const sel = $('streamSel');
-      sel.innerHTML = '';
-      for (const s of arr.slice(0, 1000)) {
-        const o = document.createElement('option');
-        o.value = s.stream_id; o.textContent = `${s.name} (${s.stream_id})`;
-        sel.appendChild(o);
-      }
-      log('ok', `${arr.length} canales en la categoría`);
-    } catch (e) { log('warn', 'No se pudieron cargar los canales: ' + e.message); }
-  }
-
-  function currentStreamId() {
-    const id = ($('streamId').value.trim() || $('streamSel').value || '').trim();
-    if (!/^\d+$/.test(id)) { log('err', 'Elige un canal o escribe un stream_id numérico.'); return null; }
-    return id;
-  }
-
-  function analyze(text, baseUrl) {
-    const lines = text.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
-    if (!lines.length || !lines[0].startsWith('#EXTM3U')) return { valid: false };
-    const uris = [];
-    let isMaster = false;
-    for (const l of lines) {
-      if (l.startsWith('#EXT-X-STREAM-INF')) isMaster = true;
-      if (l.startsWith('#')) { const m = l.match(/URI="([^"]+)"/); if (m) uris.push(m[1]); }
-      else uris.push(l);
-    }
-    const abs = uris.map((u) => { try { return new URL(u, baseUrl).href; } catch (_) { return u; } });
-    return { valid: true, isMaster, abs, http: abs.filter((u) => u.startsWith('http:')).length };
-  }
-
-  async function inspect(url) {
-    setR('m3u8', 'pend', 'Probando…');
-    const r = await probe(url);
-    if (!r.reachable) {
-      setR('m3u8', 'err', `No accesible desde la web (${r.err}). Puede ser una redirección a HTTP bloqueada.`);
-      setR('redir', 'na'); setR('segs', 'na');
-      return;
-    }
-    if (!r.cors) {
-      setR('m3u8', 'warn', 'Accesible, pero sin CORS: la web no puede leerla (para reproducir en <video> no hace falta CORS).');
-      setR('redir', 'na', 'No visible sin CORS'); setR('segs', 'na', 'No visible sin CORS');
-      return;
-    }
-    const res = r.res;
-    if (!res.ok) {
-      setR('m3u8', 'err', `HTTP ${res.status}` + (res.status === 403 || res.status === 509 ? ' (¿límite de conexiones?)' : ''));
-      setR('redir', 'na'); setR('segs', 'na');
-      return;
-    }
-    setR('m3u8', 'ok', `HTTP ${res.status}`);
-    const fin = res.url;
-    setR('redir', fin.startsWith('https:') ? 'ok' : 'err', res.redirected ? `Redirige a ${fin}` : 'Sin redirección');
-
-    let a = analyze(await res.text(), fin);
-    if (!a.valid) { setR('segs', 'warn', 'La respuesta no parece un .m3u8'); return; }
-    if (a.isMaster && a.abs.length) {
-      log('info', 'Playlist maestra, variante: ' + a.abs[0]);
-      try {
-        const r2 = await tfetch(a.abs[0]);
-        a = analyze(await r2.text(), r2.url);
-        if (!a.valid) { setR('segs', 'warn', 'La variante no parece un .m3u8'); return; }
-      } catch (e) { setR('segs', 'warn', 'No se pudo leer la variante: ' + e.message); return; }
-    }
-    const n = a.abs.length;
-    if (!n) { setR('segs', 'warn', 'Playlist sin segmentos'); return; }
-    log('info', 'Ejemplo de segmento: ' + a.abs[0]);
-    if (a.http === 0) setR('segs', 'ok', `${n} segmentos, todos por HTTPS`);
-    else setR('segs', 'err', `${a.http} de ${n} segmentos por HTTP: desde una página HTTPS se bloquearán`);
-  }
-
-  function mediaErr(e) {
-    if (!e) return 'desconocido';
-    return ({ 1: 'abortado', 2: 'error de red', 3: 'error de decodificación', 4: 'fuente no soportada o bloqueada (contenido mixto, 403, límite de conexiones…)' })[e.code] || 'desconocido';
-  }
-
-  function stopVideo() {
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-  }
-
-  function testPlay(url) {
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = (ok, msg) => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        video.onplaying = video.onerror = video.ontimeupdate = null;
-        resolve({ ok, msg });
-      };
-      const timer = setTimeout(() => finish(false, 'Tiempo agotado (25 s) sin empezar a reproducir'), 25000);
-      video.onloadedmetadata = () => log('info', `Metadatos: ${video.videoWidth}x${video.videoHeight}`);
-      video.onplaying = () => finish(true, `Reproduciendo ${video.videoWidth}x${video.videoHeight}`);
-      video.ontimeupdate = () => { if (video.currentTime > 0.5) finish(true, `Reproduciendo ${video.videoWidth}x${video.videoHeight}`); };
-      video.onerror = () => finish(false, `Error ${video.error ? video.error.code : ''}: ${mediaErr(video.error)}`);
-      video.muted = true; // permite autoplay en iOS
-      video.src = url;
-      const p = video.play();
-      if (p && p.catch) p.catch((e) => log('warn', 'play(): ' + e.message));
+  function fixLogos(root) {
+    root.querySelectorAll('.logo img').forEach((img) => {
+      img.onerror = () => { const p = img.parentNode; if (p) p.textContent = img.dataset.ini || '?'; };
     });
   }
 
-  async function runPlay(url) {
-    log('info', '— Prueba de reproducción —');
-    setR('play', 'pend', 'Probando…');
-    const res = await testPlay(url);
-    setR('play', res.ok ? 'ok' : 'err', res.msg);
-    log(res.ok ? 'ok' : 'err', 'Reproducción: ' + res.msg);
-    if (res.ok) log('info', 'Activa el sonido en el reproductor y prueba AirPlay.');
-    else log('info', 'Si sospechas del límite de 1 conexión, espera ~30 s y pulsa "Solo reproducción".');
+  function setHeader(title, back) {
+    $('title').textContent = title;
+    $('back').hidden = !back;
   }
 
-  async function runStream({ inspectFirst = true } = {}) {
-    if (!validInputs()) return;
-    const id = currentStreamId();
-    if (!id) return;
-    const url = streamUrl(id);
-    checkEnv();
-    stopVideo();
-    log('info', `— Canal ${id} — ` + url);
-    if (inspectFirst) {
-      await inspect(url);
-      await sleep(3000); // margen para que el panel libere la conexión
+  function render() {
+    document.querySelectorAll('nav.tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === S.tab));
+    const c = $('content');
+    ({ favs: renderFavs, cats: renderCats, search: renderSearch, settings: renderSettings })[S.tab](c);
+    fixLogos(c);
+  }
+
+  function renderFavs(c) {
+    setHeader('Favoritos', false);
+    let html = '';
+    if (S.favs.length) html += channelList(S.favs, { showNum: false });
+    else html += `<div class="empty">Aún no tienes favoritos.<br>Pulsa ☆ en cualquier canal para añadirlo aquí.</div>`;
+    if (S.recent.length) html += '<h3>Vistos recientemente</h3>' + channelList(S.recent, { showNum: false });
+    html += `<div class="tip"><b>Cómo verlo en la tele:</b> toca un canal y se abrirá en el reproductor de Safari. Allí pulsa el icono de AirPlay (▭ con triángulo) y elige tu tele.</div>`;
+    if (!navigator.standalone) html += `<div class="tip"><b>Instálala:</b> en Safari pulsa Compartir → «Añadir a pantalla de inicio» para tenerla como una app.</div>`;
+    c.innerHTML = html;
+  }
+
+  async function renderCats(c) {
+    if (S.cat) return renderCat(c);
+    setHeader('Categorías', false);
+    if (!S.cats) {
+      c.innerHTML = '<div class="spinner">Cargando categorías…</div>';
+      try { await getCats(); } catch (e) { c.innerHTML = `<div class="empty">No se pudieron cargar las categorías.<br>${esc(e.message)}</div>`; return; }
+      if (S.tab !== 'cats' || S.cat) return;
     }
-    await runPlay(url);
+    c.innerHTML = `<div class="search"><input class="field" id="catFilter" type="search" placeholder="Filtrar ${S.cats.length} categorías" value="${esc(S.catFilter)}"></div><div id="catList"></div>`;
+    const draw = () => {
+      const q = norm(S.catFilter);
+      const list = S.cats.filter((k) => !q || norm(k.category_name).includes(q));
+      $('catList').innerHTML = list.length
+        ? '<ul class="list">' + list.map((k) => `<li><button class="tap" data-act="cat" data-id="${esc(k.category_id)}"><span class="name">${esc(k.category_name)}</span><span class="chev">›</span></button></li>`).join('') + '</ul>'
+        : '<div class="empty">Ninguna categoría coincide.</div>';
+    };
+    $('catFilter').oninput = (e) => { S.catFilter = e.target.value; draw(); };
+    draw();
   }
 
-  // ---------- AirPlay ----------
-  if (window.WebKitPlaybackTargetAvailabilityEvent) {
-    setR('airplay', 'pend', 'Esperando a detectar receptores…');
-    video.addEventListener('webkitplaybacktargetavailabilitychanged', (e) => {
-      const av = e.availability === 'available';
-      $('btnAirplay').hidden = !av;
-      if (!(R.airplay && R.airplay.d.startsWith('Enviado')))
-        setR('airplay', av ? 'ok' : 'warn', av ? 'Hay receptores AirPlay en tu red: pulsa "Enviar por AirPlay"' : 'No se detectan receptores (¿tele encendida, AirPlay activado y misma wifi?)');
-    });
-    video.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => {
-      const w = video.webkitCurrentPlaybackTargetIsWireless;
-      log(w ? 'ok' : 'info', w ? 'Reproduciendo por AirPlay ✓' : 'AirPlay desconectado');
-      if (w) setR('airplay', 'ok', 'Enviado correctamente a la tele por AirPlay');
-    });
-    $('btnAirplay').onclick = () => video.webkitShowPlaybackTargetPicker();
-  } else {
-    setR('airplay', 'na', 'Este navegador no expone AirPlay a la web (usa Safari en el iPhone)');
+  async function renderCat(c) {
+    const cat = (S.cats || []).find((k) => String(k.category_id) === String(S.cat));
+    setHeader(cat ? cat.category_name : 'Canales', true);
+    if (!S.byCat[S.cat]) {
+      c.innerHTML = '<div class="spinner">Cargando canales…</div>';
+      try { await getStreams(S.cat); } catch (e) { c.innerHTML = `<div class="empty">No se pudieron cargar los canales.<br>${esc(e.message)}</div>`; return; }
+      if (S.tab !== 'cats' || !S.cat) return;
+    }
+    const list = S.byCat[S.cat];
+    c.innerHTML = list.length ? channelList(list) : '<div class="empty">Esta categoría está vacía.</div>';
+    fixLogos(c);
+    window.scrollTo(0, 0);
   }
 
-  // ---------- persistencia opcional ----------
-  const KEY = 'xtream-diag';
-  try {
-    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (saved) { $('server').value = saved.s || ''; $('user').value = saved.u || ''; $('pass').value = saved.p || ''; $('remember').checked = true; }
-  } catch (_) {}
-  function persist() {
+  let searchT;
+  function renderSearch(c) {
+    setHeader('Buscar', false);
+    c.innerHTML = `<div class="search"><input class="field" id="q" type="search" placeholder="Nombre del canal" value="${esc(S.query)}" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div id="results"></div>`;
+    const q = $('q');
+    q.oninput = () => { S.query = q.value; clearTimeout(searchT); searchT = setTimeout(doSearch, 250); };
+    if (!S.query) setTimeout(() => q.focus(), 50);
+    doSearch();
+  }
+  async function doSearch() {
+    const out = $('results');
+    if (!out) return;
+    const q = norm(S.query).trim();
+    if (q.length < 2) { out.innerHTML = '<div class="empty">Escribe al menos 2 letras.</div>'; return; }
+    if (!S.all) {
+      out.innerHTML = '<div class="spinner">Cargando todos los canales (solo la primera vez)…</div>';
+      try { await getAll(); } catch (e) { out.innerHTML = `<div class="empty">No se pudo cargar la lista completa.<br>${esc(e.message)}</div>`; return; }
+      if (!$('results')) return;
+    }
+    const words = q.split(/\s+/);
+    const hits = S.all.filter((ch) => { const n = norm(ch.name); return words.every((w) => n.includes(w)); });
+    const shown = hits.slice(0, 200);
+    $('results').innerHTML = shown.length
+      ? channelList(shown) + (hits.length > 200 ? `<div class="empty">Mostrando 200 de ${hits.length}. Afina la búsqueda.</div>` : '')
+      : '<div class="empty">Sin resultados.</div>';
+    fixLogos($('results'));
+  }
+
+  function renderSettings(c) {
+    setHeader('Ajustes', false);
+    const ui = (S.info && S.info.user_info) || {};
+    const exp = ui.exp_date ? new Date(Number(ui.exp_date) * 1000).toLocaleDateString('es-ES') : '—';
+    let host = '';
+    try { host = new URL(S.cfg.server).host; } catch (_) {}
+    c.innerHTML = `
+      <h3>Cuenta</h3>
+      <div class="card">
+        <div class="kv"><span>Servidor</span><span>${esc(host)}</span></div>
+        <div class="kv"><span>Usuario</span><span>${esc(S.cfg.user)}</span></div>
+        <div class="kv"><span>Estado</span><span>${esc(ui.status || '—')}</span></div>
+        <div class="kv"><span>Caduca</span><span>${esc(exp)}</span></div>
+        <div class="kv"><span>Conexiones</span><span>${esc(ui.active_cons ?? '—')} / ${esc(ui.max_connections ?? '—')}</span></div>
+      </div>
+
+      <h3>Reproducción</h3>
+      <div class="card">
+        <label for="sMode">Abrir los canales en</label>
+        <select id="sMode" class="field">
+          <option value="tab">Safari (nueva pestaña)</option>
+          <option value="same">Safari (misma pestaña)</option>
+          <option value="vlc">App VLC</option>
+        </select>
+        <label for="sFmt">Formato</label>
+        <select id="sFmt" class="field">
+          <option value="m3u8">HLS (.m3u8) — necesario para Safari y AirPlay</option>
+          <option value="ts">MPEG-TS (.ts) — solo con VLC</option>
+        </select>
+        <label for="sProto">Protocolo de los streams</label>
+        <select id="sProto" class="field">
+          <option value="http">HTTP (servidor original)</option>
+          <option value="https">HTTPS (misma dirección que la API)</option>
+        </select>
+        <label for="sBase">Dirección de streams (avanzado, vacío = automática)</label>
+        <input id="sBase" class="field" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="${esc(S.cfg.streamBase ? '' : streamBase())}" value="${esc(S.cfg.streamBase)}">
+        <div class="note" style="text-align:left">Ejemplo de URL generada: <span style="word-break:break-all">${esc(streamUrl('ID').replace(encodeURIComponent(S.cfg.pass), '•••'))}</span></div>
+      </div>
+
+      <h3>Datos</h3>
+      <div class="card">
+        <button class="btn" id="sReload">Recargar listas de canales</button>
+        <a class="btn" href="diagnostico.html">Abrir página de diagnóstico</a>
+        <button class="btn danger" id="sLogout">Cerrar sesión y borrar datos</button>
+      </div>
+      <div class="note">Usuario, contraseña y favoritos se guardan solo en este dispositivo.</div>`;
+    $('sMode').value = S.cfg.mode;
+    $('sFmt').value = S.cfg.fmt;
+    $('sProto').value = S.cfg.proto;
+    const save = () => {
+      S.cfg.mode = $('sMode').value;
+      S.cfg.fmt = $('sFmt').value;
+      S.cfg.proto = $('sProto').value;
+      S.cfg.streamBase = $('sBase').value.trim().replace(/\/+$/, '');
+      store.set('cfg', S.cfg);
+      if (S.cfg.fmt === 'ts' && S.cfg.mode !== 'vlc') toast('Safari no reproduce .ts: usa VLC o vuelve a HLS');
+      renderSettings(c);
+    };
+    $('sMode').onchange = save; $('sFmt').onchange = save; $('sProto').onchange = save; $('sBase').onchange = save;
+    $('sReload').onclick = () => { S.cats = null; S.byCat = {}; S.all = null; refreshInfo(); toast('Las listas se recargarán al abrirlas'); };
+    $('sLogout').onclick = () => {
+      if (!confirm('¿Cerrar sesión? Se borrarán credenciales, favoritos y recientes de este dispositivo.')) return;
+      ['cfg', 'info', 'favs', 'recent'].forEach(store.del);
+      location.reload();
+    };
+  }
+
+  // ---------- hoja de detalles ----------
+  async function openSheet(ch) {
+    const p = $('sheetPanel');
+    p.innerHTML = `
+      <h2>${esc(ch.name)}</h2>
+      <div class="epg" id="epg"><div class="spinner" style="padding:8px">Cargando guía…</div></div>
+      <button class="btn primary" data-sheet="tab">▶ Ver en Safari</button>
+      <button class="btn" data-sheet="vlc">Abrir en VLC</button>
+      <button class="btn" data-sheet="copy">Copiar URL del stream</button>
+      <button class="btn" data-sheet="fav">${isFav(ch.stream_id) ? '★ Quitar de favoritos' : '☆ Añadir a favoritos'}</button>
+      <button class="btn" data-sheet="close">Cerrar</button>`;
+    p.dataset.id = ch.stream_id;
+    $('sheet').hidden = false;
     try {
-      if ($('remember').checked) localStorage.setItem(KEY, JSON.stringify({ s: $('server').value.trim(), u: $('user').value.trim(), p: $('pass').value.trim() }));
-      else localStorage.removeItem(KEY);
+      const r = await api({ action: 'get_short_epg', stream_id: ch.stream_id, limit: 4 });
+      const items = (r && r.epg_listings) || [];
+      const now = Date.now() / 1000;
+      if ($('sheetPanel').dataset.id !== String(ch.stream_id)) return;
+      $('epg').innerHTML = items.length
+        ? items.map((it) => {
+            const st = Number(it.start_timestamp), en = Number(it.stop_timestamp);
+            const live = st <= now && now < en;
+            return `<div class="${live ? 'now' : ''}"><span class="t">${st ? hhmm(st) : ''}</span>${esc(b64(it.title))}${live ? ' · ahora' : ''}</div>`;
+          }).join('')
+        : '<div style="color:var(--muted)">Sin guía para este canal.</div>';
+    } catch (_) {
+      if ($('epg')) $('epg').innerHTML = '<div style="color:var(--muted)">No se pudo cargar la guía.</div>';
+    }
+  }
+  function closeSheet() { $('sheet').hidden = true; $('sheetPanel').dataset.id = ''; }
+
+  $('sheet').addEventListener('click', async (e) => {
+    if (e.target.classList.contains('bg')) return closeSheet();
+    const b = e.target.closest('[data-sheet]');
+    if (!b) return;
+    const ch = S.ch.get(String($('sheetPanel').dataset.id));
+    if (!ch) return closeSheet();
+    const act = b.dataset.sheet;
+    if (act === 'close') return closeSheet();
+    if (act === 'tab') { play(ch, 'tab'); return closeSheet(); }
+    if (act === 'vlc') { play(ch, 'vlc'); return closeSheet(); }
+    if (act === 'fav') { toggleFav(ch); closeSheet(); return render(); }
+    if (act === 'copy') {
+      const url = streamUrl(ch.stream_id);
+      try { await navigator.clipboard.writeText(url); toast('URL copiada'); }
+      catch (_) { prompt('Copia la URL:', url); }
+    }
+  });
+
+  // ---------- eventos de la lista ----------
+  $('content').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const id = String(b.dataset.id);
+    const act = b.dataset.act;
+    if (act === 'cat') { S.cat = id; return render(); }
+    const ch = S.ch.get(id);
+    if (!ch) return;
+    if (act === 'play') return play(ch);
+    if (act === 'more') return openSheet(ch);
+    if (act === 'fav') {
+      toggleFav(ch);
+      const on = isFav(id);
+      document.querySelectorAll(`[data-act="fav"][data-id="${CSS.escape(id)}"]`).forEach((x) => { x.classList.toggle('on', on); x.textContent = on ? '★' : '☆'; });
+      if (S.tab === 'favs') render();
+    }
+  });
+
+  document.querySelectorAll('nav.tabs button').forEach((b) => {
+    b.onclick = () => {
+      if (S.tab === b.dataset.tab && b.dataset.tab === 'cats') S.cat = null;
+      S.tab = b.dataset.tab;
+      render();
+      window.scrollTo(0, 0);
+    };
+  });
+  $('back').onclick = () => { S.cat = null; render(); };
+
+  // ---------- sesión ----------
+  async function refreshInfo() {
+    try {
+      const r = await api();
+      if (r && r.user_info) { S.info = r; store.set('info', r); }
     } catch (_) {}
   }
-  $('remember').onchange = persist;
 
-  // ---------- botones ----------
-  async function busy(btn, fn) {
-    const all = document.querySelectorAll('button');
-    all.forEach((b) => (b.disabled = true));
-    try { await fn(); } catch (e) { log('err', 'Error inesperado: ' + e.message); }
-    finally { all.forEach((b) => (b.disabled = false)); }
-  }
-
-  $('btnAll').onclick = (e) => busy(e.target, async () => {
-    if (!validInputs()) return;
-    persist();
-    await runApi();
-    if ($('streamId').value.trim() || $('streamSel').value) await runStream();
-    else log('warn', 'Sin canal para probar el vídeo: escribe un stream_id en la sección 2 y pulsa "Probar canal".');
-  });
-  $('btnStream').onclick = (e) => busy(e.target, async () => { persist(); await runStream(); });
-  $('btnPlayOnly').onclick = (e) => busy(e.target, async () => { persist(); await runStream({ inspectFirst: false }); });
-  $('btnStop').onclick = () => { stopVideo(); log('info', 'Reproducción detenida (conexión liberada).'); };
-  $('catSel').onchange = () => loadStreams($('catSel').value);
-  $('streamSel').onchange = () => { $('streamId').value = ''; };
-
-  $('btnOpenCats').onclick = () => { if (validInputs()) window.open(apiUrl({ action: 'get_live_categories' }), '_blank', 'noopener'); };
-  $('btnOpenStreams').onclick = () => { if (validInputs()) window.open(apiUrl({ action: 'get_live_streams' }), '_blank', 'noopener'); };
-
-  $('btnCopy').onclick = async () => {
-    const lines = [
-      'Diagnóstico Xtream — ' + new Date().toISOString(),
-      'Navegador: ' + navigator.userAgent,
-      'Página: ' + location.protocol,
-      '',
-      ...ROWS.map(([k, label]) => { const r = R[k] || { s: 'pend', d: '' }; return `${ICON[r.s]} ${label}${r.d ? ': ' + r.d : ''}`; }),
-      '',
-      'Veredicto: ' + verdict().text,
-      '',
-      'Registro:',
-      ...LOG,
-    ];
-    const txt = redact(lines.join('\n'));
+  $('loginForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const cfg = Object.assign({}, S.cfg, { server: normBase($('lServer').value), user: $('lUser').value.trim(), pass: $('lPass').value.trim() });
+    $('lErr').textContent = '';
+    if (cfg.server.startsWith('http://')) { $('lErr').textContent = 'Usa la dirección https:// (desde esta web no se puede llamar a http://).'; return; }
+    $('lBtn').disabled = true; $('lBtn').textContent = 'Comprobando…';
     try {
-      await navigator.clipboard.writeText(txt);
-      $('btnCopy').textContent = 'Copiado ✓';
-      setTimeout(() => ($('btnCopy').textContent = 'Copiar informe (sin credenciales)'), 2000);
-    } catch (_) {
-      const box = $('reportBox');
-      box.hidden = false; box.value = txt; box.focus(); box.select();
+      const r = await api({}, cfg);
+      if (!r || !r.user_info || String(r.user_info.auth) !== '1') throw new Error('Usuario o contraseña incorrectos');
+      if (r.user_info.status && r.user_info.status !== 'Active') throw new Error('Cuenta no activa: ' + r.user_info.status);
+      S.cfg = cfg; S.info = r;
+      store.set('cfg', cfg); store.set('info', r);
+      showApp();
+    } catch (err) {
+      $('lErr').textContent = err.message === 'Failed to fetch' || err.message === 'Load failed' ? 'No se pudo conectar con el servidor.' : err.message;
+    } finally {
+      $('lBtn').disabled = false; $('lBtn').textContent = 'Entrar';
     }
   };
 
-  render();
+  function showApp() {
+    $('login').hidden = true;
+    $('app').hidden = false;
+    render();
+  }
+
+  if (S.cfg.server && S.cfg.user && S.cfg.pass) { showApp(); refreshInfo(); }
+  else $('login').hidden = false;
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
 })();
 </script>
 </body>
