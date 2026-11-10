@@ -1,6 +1,6 @@
 // Service worker mínimo: red primero para los archivos de la app (así las actualizaciones
 // llegan al momento) y caché como respaldo sin conexión. Nunca toca la API ni los streams.
-const CACHE = 'mi-tv-v3';
+const CACHE = 'mi-tv-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
