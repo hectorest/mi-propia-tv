@@ -297,6 +297,23 @@
     throw new Error('La lista M3U no contiene canales en directo reconocibles.');
   }
 
+  // Resuelve el dominio a IPv4 con DNS sobre HTTPS (Google y Cloudflare permiten CORS).
+  async function resolveIPv4(host) {
+    if (/^[\d.]+$/.test(host)) return host;
+    const tries = [
+      () => fetch(`https://dns.google/resolve?name=${encodeURIComponent(host)}&type=A`, { cache: 'no-store' }),
+      () => fetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=A`, { cache: 'no-store', headers: { accept: 'application/dns-json' } }),
+    ];
+    for (const t of tries) {
+      try {
+        const j = await (await t()).json();
+        const a = (j.Answer || []).find((x) => x.type === 1);
+        if (a) return a.data;
+      } catch (_) {}
+    }
+    return null;
+  }
+
   function parseTpl(u) {
     const m = u.match(/^(.*\/)(\d+)(\.[a-z0-9]+)?(\?.*)?$/i);
     return m ? { prefix: m[1], ext: (m[3] || '').slice(1), query: m[4] || '', sampleId: m[2] } : null;
@@ -520,6 +537,8 @@
         const tpl = parseTpl(hit.url);
         const current = mask(streamUrl(tpl ? tpl.sampleId : 'ID'));
         const same = tpl && streamUrl(tpl.sampleId) === hit.url;
+        const ip = u.protocol === 'http:' ? await resolveIPv4(u.hostname) : null;
+        const ipUrl = ip && ip !== u.hostname ? hit.url.replace(u.hostname, ip) : null;
         out.innerHTML = `
           <div class="kv"><span>Canal</span><span>${esc(hit.name || '—')}</span></div>
           <div class="kv"><span>Protocolo</span><span>${esc(u.protocol.replace(':', '').toUpperCase())}</span></div>
@@ -531,8 +550,28 @@
             <button class="btn primary" id="dPlay">▶ Probar este canal en Safari</button>
             <button class="btn" id="dVlc">Probar en VLC</button>
             ${tpl && !same ? '<button class="btn" id="dUse">Usar la dirección del proveedor</button>' : ''}
-            <button class="btn" id="dCopy">Copiar resultado para compartir</button>
-          </div>`;
+          </div>
+          ${ipUrl ? `
+          <h3 style="margin-left:0">Prueba por IP</h3>
+          <div class="note" style="text-align:left;margin-top:0">Safari puede cambiar <b>http</b> por <b>https</b> en un dominio, pero nunca en una IP. Si por IP se reproduce y por dominio da 403, el culpable es ese cambio automático.</div>
+          <div class="note" style="text-align:left">IP del servidor: <span style="color:var(--text)">${esc(ip)}</span></div>
+          <div style="margin-top:10px">
+            <button class="btn primary" id="dIpPlay">▶ Probar por IP en Safari</button>
+            <button class="btn" id="dIpUse">Usar la IP para todos los canales</button>
+          </div>` : (u.protocol === 'http:' && !/^[\d.]+$/.test(u.hostname) ? '<div class="note" style="text-align:left">No se pudo averiguar la IP del servidor.</div>' : '')}
+          <div style="margin-top:10px"><button class="btn" id="dCopy">Copiar resultado para compartir</button></div>`;
+        if ($('dIpPlay')) {
+          $('dIpPlay').onclick = () => { const w = window.open(ipUrl, '_blank'); if (!w) location.href = ipUrl; };
+          $('dIpUse').onclick = () => {
+            const t = parseTpl(ipUrl);
+            if (!t) return;
+            S.cfg.tpl = { prefix: t.prefix, ext: t.ext, query: t.query };
+            if (t.ext === 'm3u8' || t.ext === 'ts') S.cfg.fmt = t.ext;
+            store.set('cfg', S.cfg);
+            toast('Los canales usarán la IP');
+            renderSettings(c);
+          };
+        }
         $('dPlay').onclick = () => { const w = window.open(hit.url, '_blank'); if (!w) location.href = hit.url; };
         $('dVlc').onclick = () => { location.href = vlcUrl(hit.url); };
         if ($('dUse')) $('dUse').onclick = () => {
