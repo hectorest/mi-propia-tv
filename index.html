@@ -228,7 +228,78 @@
     return `http://${host}${port && port !== '80' && port !== '0' ? ':' + port : ''}`;
   }
   function streamUrl(id) {
+    const t = S.cfg.tpl;
+    if (t) return t.prefix + id + (t.ext ? '.' + S.cfg.fmt : '') + (t.query || '');
     return `${streamBase()}/live/${encodeURIComponent(S.cfg.user)}/${encodeURIComponent(S.cfg.pass)}/${id}.${S.cfg.fmt}`;
+  }
+
+  // Oculta usuario y contraseña (y opcionalmente el dominio) para mostrar o compartir URLs.
+  function mask(s, hideHost) {
+    s = String(s);
+    const reps = [S.cfg.pass, encodeURIComponent(S.cfg.pass), S.cfg.user, encodeURIComponent(S.cfg.user)];
+    for (const x of reps) if (x && x.length >= 2) s = s.split(x).join('***');
+    if (hideHost) s = s.replace(/^(https?:\/\/)([^/:?#]+)/i, (_, p, h) => p + (/^[\d.]+$/.test(h) ? 'IP' : 'DOMINIO'));
+    return s;
+  }
+
+  // Lee la lista M3U oficial del proveedor y devuelve el primer canal en directo, tal como lo genera el panel.
+  async function detectFromM3U() {
+    const url = new URL(S.cfg.server + '/get.php');
+    url.searchParams.set('username', S.cfg.user);
+    url.searchParams.set('password', S.cfg.pass);
+    url.searchParams.set('type', 'm3u_plus');
+    url.searchParams.set('output', 'm3u8');
+    const c = new AbortController();
+    const timer = setTimeout(() => c.abort(), 45000);
+    let res;
+    try {
+      res = await fetch(url, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', signal: c.signal });
+    } catch (e) {
+      clearTimeout(timer);
+      throw new Error(e.name === 'AbortError' ? 'El servidor tarda demasiado en dar la lista.' : 'El servidor no deja leer la lista M3U desde la web (CORS) o no responde.');
+    }
+    if (!res.ok) { clearTimeout(timer); throw new Error('El servidor respondió HTTP ' + res.status + ' al pedir la lista M3U.'); }
+
+    const find = (text) => {
+      const lines = text.split(/\r?\n/);
+      for (let i = 0; i < lines.length - 1; i++) {
+        if (!lines[i].startsWith('#EXTINF')) continue;
+        let j = i + 1;
+        while (j < lines.length && (lines[j].trim() === '' || lines[j].startsWith('#'))) j++;
+        const u = (lines[j] || '').trim();
+        if (/^https?:\/\//i.test(u) && !/\/(movie|series)\//i.test(u) && j < lines.length - 1) {
+          const name = (lines[i].split(',').pop() || '').trim();
+          return { url: u, name };
+        }
+      }
+      return null;
+    };
+
+    try {
+      if (res.body && res.body.getReader) {
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (value) buf += dec.decode(value, { stream: true });
+          const hit = find(buf);
+          if (hit) { reader.cancel().catch(() => {}); return hit; }
+          if (done || buf.length > 8e6) break;
+        }
+        const hit = find(buf + '\n#');
+        if (hit) return hit;
+      } else {
+        const hit = find(await res.text() + '\n#');
+        if (hit) return hit;
+      }
+    } finally { clearTimeout(timer); }
+    throw new Error('La lista M3U no contiene canales en directo reconocibles.');
+  }
+
+  function parseTpl(u) {
+    const m = u.match(/^(.*\/)(\d+)(\.[a-z0-9]+)?(\?.*)?$/i);
+    return m ? { prefix: m[1], ext: (m[3] || '').slice(1), query: m[4] || '', sampleId: m[2] } : null;
   }
   const vlcUrl = (url) => 'vlc-x-callback://x-callback-url/stream?url=' + encodeURIComponent(url);
 
@@ -402,7 +473,17 @@
         </select>
         <label for="sBase">Dirección de streams (avanzado, vacío = automática)</label>
         <input id="sBase" class="field" type="url" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="${esc(S.cfg.streamBase ? '' : streamBase())}" value="${esc(S.cfg.streamBase)}">
-        <div class="note" style="text-align:left">Ejemplo de URL generada: <span style="word-break:break-all">${esc(streamUrl('ID').replace(encodeURIComponent(S.cfg.pass), '•••'))}</span></div>
+        <div class="note" style="text-align:left">Ejemplo de URL generada: <span id="sExample" style="word-break:break-all">${esc(mask(streamUrl('ID')))}</span></div>
+      </div>
+
+      <h3>Dirección de los streams</h3>
+      <div class="card">
+        ${S.cfg.tpl
+          ? `<div class="note" style="text-align:left;margin:0 0 10px">✅ Usando la dirección detectada en la lista M3U de tu proveedor.</div>
+             <button class="btn" id="sTplOff">Volver a la dirección automática</button>`
+          : ''}
+        <button class="btn primary" id="sDetect">Detectar desde la lista M3U del proveedor</button>
+        <div id="detectOut"></div>
       </div>
 
       <h3>Datos</h3>
@@ -425,6 +506,58 @@
       renderSettings(c);
     };
     $('sMode').onchange = save; $('sFmt').onchange = save; $('sProto').onchange = save; $('sBase').onchange = save;
+    if ($('sTplOff')) $('sTplOff').onclick = () => { delete S.cfg.tpl; store.set('cfg', S.cfg); toast('Dirección automática'); renderSettings(c); };
+    $('sDetect').onclick = async () => {
+      const out = $('detectOut');
+      const btn = $('sDetect');
+      btn.disabled = true; btn.textContent = 'Descargando lista M3U…';
+      out.innerHTML = '';
+      try {
+        const hit = await detectFromM3U();
+        S.detected = hit;
+        const u = new URL(hit.url);
+        const api = new URL(S.cfg.server);
+        const tpl = parseTpl(hit.url);
+        const current = mask(streamUrl(tpl ? tpl.sampleId : 'ID'));
+        const same = tpl && streamUrl(tpl.sampleId) === hit.url;
+        out.innerHTML = `
+          <div class="kv"><span>Canal</span><span>${esc(hit.name || '—')}</span></div>
+          <div class="kv"><span>Protocolo</span><span>${esc(u.protocol.replace(':', '').toUpperCase())}</span></div>
+          <div class="kv"><span>Dominio</span><span>${u.hostname === api.hostname ? 'el mismo que la API' : 'distinto al de la API'}</span></div>
+          <div class="kv"><span>Puerto</span><span>${esc(u.port || (u.protocol === 'https:' ? '443' : '80'))}</span></div>
+          <div class="note" style="text-align:left">Dirección del proveedor:<br><span style="word-break:break-all;color:var(--text)">${esc(mask(hit.url))}</span></div>
+          <div class="note" style="text-align:left">Dirección que monta la app ahora:<br><span style="word-break:break-all">${esc(current)}</span><br>${same ? '✅ Coinciden.' : '⚠️ No coinciden.'}</div>
+          <div style="margin-top:12px">
+            <button class="btn primary" id="dPlay">▶ Probar este canal en Safari</button>
+            <button class="btn" id="dVlc">Probar en VLC</button>
+            ${tpl && !same ? '<button class="btn" id="dUse">Usar la dirección del proveedor</button>' : ''}
+            <button class="btn" id="dCopy">Copiar resultado para compartir</button>
+          </div>`;
+        $('dPlay').onclick = () => { const w = window.open(hit.url, '_blank'); if (!w) location.href = hit.url; };
+        $('dVlc').onclick = () => { location.href = vlcUrl(hit.url); };
+        if ($('dUse')) $('dUse').onclick = () => {
+          S.cfg.tpl = { prefix: tpl.prefix, ext: tpl.ext, query: tpl.query };
+          if (tpl.ext === 'm3u8' || tpl.ext === 'ts') S.cfg.fmt = tpl.ext;
+          store.set('cfg', S.cfg);
+          toast('Dirección del proveedor aplicada');
+          renderSettings(c);
+        };
+        $('dCopy').onclick = async () => {
+          const txt = `Proveedor: ${mask(hit.url, true)}\nApp: ${mask(streamUrl(tpl ? tpl.sampleId : 'ID'), true)}\nNavegador: ${navigator.userAgent}`;
+          try { await navigator.clipboard.writeText(txt); toast('Copiado sin credenciales ni dominio'); }
+          catch (_) { prompt('Copia el texto:', txt); }
+        };
+      } catch (e) {
+        const manual = new URL(S.cfg.server + '/get.php');
+        manual.searchParams.set('username', S.cfg.user); manual.searchParams.set('password', S.cfg.pass);
+        manual.searchParams.set('type', 'm3u_plus'); manual.searchParams.set('output', 'm3u8');
+        out.innerHTML = `<div class="err" style="text-align:left">${esc(e.message)}</div>
+          <a class="btn" href="${esc(manual.toString())}" target="_blank" rel="noopener">Abrir la lista M3U en otra pestaña</a>
+          <div class="note" style="text-align:left">Ahí busca la primera línea que empiece por http debajo de un #EXTINF.</div>`;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Detectar desde la lista M3U del proveedor';
+      }
+    };
     $('sReload').onclick = () => { S.cats = null; S.byCat = {}; S.all = null; refreshInfo(); toast('Las listas se recargarán al abrirlas'); };
     $('sLogout').onclick = () => {
       if (!confirm('¿Cerrar sesión? Se borrarán credenciales, favoritos y recientes de este dispositivo.')) return;
